@@ -6,7 +6,12 @@ and test different parts of the journey in isolation e.g. just auth, just IPV co
 
 ### Example usage
 
-Install and import the method(s) you want to use:
+Install via GitHub link (this will install and compile the TS source):
+```
+npm i git+ssh://git@github.com:alphagov/di-stub-oauth-client#<branch-name>
+```
+
+Import the method(s) you want to use:
 ```typescript
 import { buildJarAuthorizationUrl } from 'di-stub-oauth-client';
 ```
@@ -17,7 +22,7 @@ For example, to generate a signed and encrypted JAR (JWT-secured Authorization R
 ```typescript
 const ipvCoreAuthorizationUrl = await buildJarAuthorizationUrl({
   clientId: 'test-client',
-  issuer: 'core',
+  issuer: 'test-client',
   audience: '***',
   authorizationEndpoint: '***/oauth2/authorize',
   redirectUrl: '***',

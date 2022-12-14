@@ -1,58 +1,56 @@
-import { createPrivateKey, randomUUID } from "node:crypto";
-import { ClientMetadata, generators, Issuer } from "openid-client";
-import { CompactEncrypt, importJWK } from "jose";
+import base64 from "base-64";
+import { v4 as uuidv4 } from "uuid";
+import { CompactEncrypt, importJWK, importPKCS8, SignJWT } from "jose";
 import { JarAuthorizationParams } from "./types";
 
 const publicKeyToJwk = async (publicKey: string) => {
-  const keyBuffer = Buffer.from(publicKey, "base64");
-  const keyObject = JSON.parse(keyBuffer.toString("ascii"));
+  const decoded = base64.decode(publicKey);
+  const keyObject = JSON.parse(decoded);
   return await importJWK(keyObject, "RSA256");
 };
 
+const buildQueryString = (queryParams: Record<string, string>) => {
+  return Object.entries(queryParams)
+    .map((pair) => pair.map(encodeURIComponent).join("="))
+    .join("&");
+};
+
 export const buildJarAuthorizationUrl = async (params: JarAuthorizationParams) => {
-  const clientMetadata: ClientMetadata = {
+  const state = uuidv4();
+
+  const signingKey = await importPKCS8(
+    `-----BEGIN PRIVATE KEY-----\n${params.privateSigningKey}\n-----END PRIVATE KEY-----`,
+    "ES256"
+  );
+
+  const signedJwt = await new SignJWT({
     client_id: params.clientId,
-    request_object_signing_alg: "ES256",
-  };
-
-  const signingKeyJwk = createPrivateKey({
-    key: Buffer.from(params.privateSigningKey, "base64"),
-    type: "pkcs8",
-    format: "der",
-  }).export({ format: "jwk" });
-
-  const issuer = new Issuer({
-    issuer: params.issuer,
-    authorization_endpoint: params.authorizationEndpoint,
-  });
-
-  const client = new issuer.Client(clientMetadata, {
-    keys: [signingKeyJwk],
-  });
-
-  const state = generators.state();
-
-  const signedRequestObject = await client.requestObject({
-    sub: randomUUID(),
-    aud: params.audience,
-    response_type: "code",
     redirect_uri: params.redirectUrl,
-    nbf: Math.trunc(new Date().getTime() / 1000),
+    response_type: "code",
     state,
-    govuk_signin_journey_id: randomUUID(),
-    persistent_session_id: randomUUID(),
-  });
+    govuk_signin_journey_id: uuidv4(),
+    persistent_session_id: uuidv4(),
+  })
+    .setProtectedHeader({ alg: "ES256" })
+    .setIssuedAt()
+    .setIssuer(params.issuer)
+    .setAudience(params.audience)
+    .setSubject(uuidv4())
+    .setExpirationTime("5m")
+    .setNotBefore("0m")
+    .sign(signingKey);
 
   const encryptionKeyJwk = await publicKeyToJwk(params.publicEncryptionKey);
-  const encryptedRequestObject = await new CompactEncrypt(new TextEncoder().encode(signedRequestObject))
+  const encryptedSignedJwt = await new CompactEncrypt(new TextEncoder().encode(signedJwt))
     .setProtectedHeader({ alg: "RSA-OAEP-256", enc: "A256GCM" })
     .encrypt(encryptionKeyJwk);
 
-  return client.authorizationUrl({
+  return `${params.authorizationEndpoint}?${buildQueryString({
+    client_id: params.clientId,
     redirect_uri: params.redirectUrl,
     response_type: "code",
     scope: "openid",
     state,
-    request: encryptedRequestObject,
-  });
+    request: encryptedSignedJwt,
+  })}`;
 };

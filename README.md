@@ -32,3 +32,18 @@ const ipvCoreAuthorizationUrl = await buildJarAuthorizationUrl({
 ```
 
 This url will land you on the start of the IPV core journey under a random user id, skipping the RP and auth flows.
+
+#### Private key signing via KMS
+
+Instead of providing the raw `privateSigningKey` you can provide a KMS key ID via `privateSigningKeyId`. Your script will need to assume a suitable
+role in the AWS account of the key you are using. 
+
+For example you could use aws-vault:
+```
+aws-vault exec core-build -- npm run start
+```
+
+#### Setting custom claims
+
+You can optionally set `customClaims`, an object of additional claims which will be added to the JWT payload.
+You can also use this to override any of the default claims such as `exp`.

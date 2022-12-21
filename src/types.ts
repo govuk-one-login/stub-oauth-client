@@ -4,6 +4,6 @@ export type JarAuthorizationParams = {
   audience: string;
   authorizationEndpoint: string;
   redirectUrl: string;
-  privateSigningKey: string;
+  customClaims?: Record<string, unknown>;
   publicEncryptionKey: string;
-};
+} & ({ privateSigningKey: string } | { privateSigningKeyId: string });

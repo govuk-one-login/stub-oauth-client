@@ -57,14 +57,16 @@ export const buildJarAuthorizationUrl = async (params: JarAuthorizationParams) =
 
   const jwtHeader: JWTHeaderParameters = { alg: "ES256" };
   let signedJwt: string;
-  if ("privateSigningKeyId" in params) {
+  if ("privateSigningKeyId" in params && params.privateSigningKeyId) {
     signedJwt = await signJwtViaKms(jwtHeader, jwtPayload, params.privateSigningKeyId);
-  } else {
+  } else if ("privateSigningKey" in params && params.privateSigningKey) {
     const signingKey = await importPKCS8(
       `-----BEGIN PRIVATE KEY-----\n${params.privateSigningKey}\n-----END PRIVATE KEY-----`,
       "ES256"
     );
     signedJwt = await new SignJWT(jwtPayload).setProtectedHeader(jwtHeader).sign(signingKey);
+  } else {
+    throw new Error("No signing key provided!");
   }
 
   const encryptionKeyJwk = await publicKeyToJwk(params.publicEncryptionKey);

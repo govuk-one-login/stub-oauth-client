@@ -1,10 +1,16 @@
-## (EXPERIMENTAL) Stub oauth client to act as a relying party (RP)
+## Stub oauth client to act as a relying party (RP)
 
 Shared library providing methods to stub parts of the JWT/authorization/token flows in the GOV.UK One Login journey.
 So we can, for example, stub within performance test code itself rather than relying on stub frontends which present a bottleneck being hosted on PaaS,
 and test different parts of the journey in isolation e.g. just auth, just IPV core, just a CRI.
 
-### Example usage
+### CLI tool
+
+To use this simply as a CLI tool to generate an authorization JWT, first copy the `.env.template` to a `.env` and set the required parameters as below.
+Then build the project with `npm run build` and run the main script with `npm run main` (requires node v16.x or higher). This will print a JAR authorization
+url to the console.
+
+### Importing as a library
 
 Install via GitHub link (this will install and compile the TS source):
 ```
@@ -40,7 +46,7 @@ role in the AWS account of the key you are using.
 
 For example you could use aws-vault:
 ```
-aws-vault exec core-build -- npm run start
+aws-vault exec core-build -- <command to run your script>
 ```
 
 #### Setting custom claims

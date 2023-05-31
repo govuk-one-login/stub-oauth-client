@@ -1,13 +1,14 @@
 {
   "include": ["src"],
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "NodeNext",
+    "target": "ES2022",
+    "module": "CommonJS",
     "esModuleInterop": true,
     "outDir": "dist",
     "sourceMap": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "declaration": true
   }
 }

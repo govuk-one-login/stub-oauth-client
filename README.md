@@ -6,9 +6,9 @@ and test different parts of the journey in isolation e.g. just auth, just IPV co
 
 ### CLI tool
 
-To use this simply as a CLI tool to generate an authorization JWT, first copy the `.env.template` to a `.env` and set the required parameters as below.
-Then build the project with `npm run build` and run the main script with `npm run main` (requires node v16.x or higher). This will print a JAR authorization
-url to the console.
+A `main.ts` script is provided so this can be used as a CLI tool. First copy the `.env.template` to a `.env` and fill it in as necessary. Import
+the method you want to use in the main script and call it with the required parameters. Build the project with `npm run build` and run the
+main script with `npm run main` (requires node v16.x or higher). The main script shows an example of building a signed VC JWT.
 
 ### Importing as a library
 

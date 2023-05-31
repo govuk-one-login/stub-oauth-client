@@ -1,23 +1,30 @@
 import * as dotenv from "dotenv";
-import { buildJarAuthorizationUrl, JarAuthorizationParams } from ".";
+import { buildSignedJwt, SignedJwtParams } from ".";
 
 dotenv.config();
 
 (async () => {
   try {
-    const params: JarAuthorizationParams = {
-      clientId: process.env.CLIENT_ID || "",
+    const params: SignedJwtParams = {
       issuer: process.env.ISSUER || "",
-      audience: process.env.AUDIENCE || "",
-      authorizationEndpoint: process.env.AUTHORIZATION_ENDPOINT || "",
-      redirectUrl: process.env.REDIRECT_URL || "",
       privateSigningKey: process.env.PRIVATE_SIGNING_KEY || "",
-      privateSigningKeyId: process.env.PRIVATE_SIGNING_KEY_ID || "",
-      publicEncryptionKey: process.env.PUBLIC_ENCRYPTION_KEY || "",
+      customClaims: {
+        sub: "urn:uuid:example",
+        aud: "https://example.audience",
+        vc: {
+          evidence: [
+            {
+              validityScore: 2,
+              strengthScore: 4,
+              type: "IdentityCheck",
+            },
+          ],
+          type: ["VerifiableCredential", "IdentityCheckCredential"],
+        },
+      },
     };
-    const authorizationUrl = await buildJarAuthorizationUrl(params);
-    console.log("Generated JAR authorization url:");
-    console.log(authorizationUrl);
+    const signedJwt = await buildSignedJwt(params);
+    console.log(signedJwt);
   } catch (e) {
     console.error(e);
   }

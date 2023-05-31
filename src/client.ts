@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { CompactEncrypt, importJWK, importPKCS8, JWTHeaderParameters, JWTPayload, SignJWT } from "jose";
-import { JarAuthorizationParams } from "./types";
+import { BaseParams, JarAuthorizationParams } from "./types";
 import { KMSClient, SignCommand } from "@aws-sdk/client-kms";
 
 const publicKeyToJwk = async (publicKey: string) => {
@@ -16,6 +16,33 @@ const buildQueryString = (queryParams: Record<string, string>) => {
 };
 
 const msToSeconds = (ms: number) => Math.round(ms / 1000);
+
+const buildBaseJwtPayload = (params: BaseParams) => {
+  const baseJwtPayload: JWTPayload = {
+    iss: params.issuer,
+    iat: msToSeconds(new Date().getTime()),
+    nbf: msToSeconds(new Date().getTime()),
+    exp: msToSeconds(new Date().getTime() + 5 * 60 * 1000),
+  };
+  return baseJwtPayload;
+};
+
+const signJwt = async (jwtPayload: JWTPayload, params: BaseParams) => {
+  const jwtHeader: JWTHeaderParameters = { alg: "ES256" };
+  let signedJwt: string;
+  if ("privateSigningKeyId" in params && params.privateSigningKeyId) {
+    signedJwt = await signJwtViaKms(jwtHeader, jwtPayload, params.privateSigningKeyId);
+  } else if ("privateSigningKey" in params && params.privateSigningKey) {
+    const signingKey = await importPKCS8(
+      `-----BEGIN PRIVATE KEY-----\n${params.privateSigningKey}\n-----END PRIVATE KEY-----`,
+      "ES256"
+    );
+    signedJwt = await new SignJWT(jwtPayload).setProtectedHeader(jwtHeader).sign(signingKey);
+  } else {
+    throw new Error("No signing key provided!");
+  }
+  return signedJwt;
+};
 
 const signJwtViaKms = async (header: JWTHeaderParameters, payload: JWTPayload, keyId: string) => {
   const kmsClient = new KMSClient({});
@@ -39,35 +66,26 @@ const signJwtViaKms = async (header: JWTHeaderParameters, payload: JWTPayload, k
   return jwtParts.header + "." + jwtParts.payload + "." + jwtParts.signature;
 };
 
+export const buildSignedJwt = async (params: BaseParams) => {
+  const jwtPayload = { ...buildBaseJwtPayload(params), ...params.customClaims };
+  const signedJwt = await signJwt(jwtPayload, params);
+  return signedJwt;
+};
+
 export const buildJarAuthorizationUrl = async (params: JarAuthorizationParams) => {
   const jwtPayload: JWTPayload = {
+    ...buildBaseJwtPayload(params),
     client_id: params.clientId,
     redirect_uri: params.redirectUrl,
     response_type: "code",
     state: uuidv4(),
     govuk_signin_journey_id: uuidv4(),
     sub: uuidv4(),
-    iss: params.issuer,
     aud: params.audience,
-    iat: msToSeconds(new Date().getTime()),
-    nbf: msToSeconds(new Date().getTime()),
-    exp: msToSeconds(new Date().getTime() + 5 * 60 * 1000),
     ...params.customClaims,
   };
 
-  const jwtHeader: JWTHeaderParameters = { alg: "ES256" };
-  let signedJwt: string;
-  if ("privateSigningKeyId" in params && params.privateSigningKeyId) {
-    signedJwt = await signJwtViaKms(jwtHeader, jwtPayload, params.privateSigningKeyId);
-  } else if ("privateSigningKey" in params && params.privateSigningKey) {
-    const signingKey = await importPKCS8(
-      `-----BEGIN PRIVATE KEY-----\n${params.privateSigningKey}\n-----END PRIVATE KEY-----`,
-      "ES256"
-    );
-    signedJwt = await new SignJWT(jwtPayload).setProtectedHeader(jwtHeader).sign(signingKey);
-  } else {
-    throw new Error("No signing key provided!");
-  }
+  const signedJwt = await signJwt(jwtPayload, params);
 
   const encryptionKeyJwk = await publicKeyToJwk(params.publicEncryptionKey);
   const encryptedSignedJwt = await new CompactEncrypt(new TextEncoder().encode(signedJwt))

@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
-import { CompactEncrypt, importJWK, importPKCS8, JWTHeaderParameters, JWTPayload, SignJWT } from "jose";
-import { BaseParams, JarAuthorizationParams } from "./types";
-import { KMSClient, SignCommand } from "@aws-sdk/client-kms";
+import { CompactEncrypt, importJWK, importPKCS8, JWK, JWTHeaderParameters, JWTPayload, SignJWT } from "jose";
+import { BaseParams, JarAuthorizationParams, PrivateKeyType } from "./types";
+import { KMSClient } from "@aws-sdk/client-kms";
+import { JwtSigner } from "./jwt-signer";
 
 const publicKeyToJwk = async (publicKey: string) => {
   const decoded = Buffer.from(publicKey, "base64").toString();
@@ -20,50 +21,38 @@ const msToSeconds = (ms: number) => Math.round(ms / 1000);
 const buildBaseJwtPayload = (params: BaseParams) => {
   const baseJwtPayload: JWTPayload = {
     iss: params.issuer,
-    iat: msToSeconds(new Date().getTime()),
-    nbf: msToSeconds(new Date().getTime()),
-    exp: msToSeconds(new Date().getTime() + 5 * 60 * 1000),
+    iat: ((params as Record<string, unknown>)["iat"] as number) || msToSeconds(new Date().getTime()),
+    nbf: ((params as Record<string, unknown>)["nbf"] as number) || msToSeconds(new Date().getTime()),
+    exp: ((params as Record<string, unknown>)["exp"] as number) || msToSeconds(new Date().getTime() + 5 * 60 * 1000),
   };
+
   return baseJwtPayload;
 };
 
+const isJWK = (key: string | JWK): boolean => typeof key === "object" && key !== null;
+
 const signJwt = async (jwtPayload: JWTPayload, params: BaseParams) => {
-  const jwtHeader: JWTHeaderParameters = { alg: "ES256" };
+  const jwtHeader: JWTHeaderParameters = { alg: "ES256", typ: "JWT" };
   let signedJwt: string;
   if ("privateSigningKeyId" in params && params.privateSigningKeyId) {
-    signedJwt = await signJwtViaKms(jwtHeader, jwtPayload, params.privateSigningKeyId);
-  } else if ("privateSigningKey" in params && params.privateSigningKey) {
+    (jwtHeader.typ = "JWT"), (jwtHeader.kid = params.privateSigningKeyId), (jwtHeader.kid = params.privateSigningKeyId);
+    const jwtSigner = new JwtSigner(new KMSClient({}), () => params.privateSigningKeyId);
+    const vcClaimSet = params.customClaims;
+    signedJwt = await jwtSigner.createSignedJwt(vcClaimSet as object);
+    console.dir(jwtPayload);
+  } else if ("privateSigningKey" in params && params.privateSigningKey && !isJWK(params.privateSigningKey)) {
     const signingKey = await importPKCS8(
       `-----BEGIN PRIVATE KEY-----\n${params.privateSigningKey}\n-----END PRIVATE KEY-----`,
       "ES256"
     );
     signedJwt = await new SignJWT(jwtPayload).setProtectedHeader(jwtHeader).sign(signingKey);
+  } else if ("privateSigningKey" in params && params.privateSigningKey && isJWK(params.privateSigningKey)) {
+    const signingKey = await importJWK(params.privateSigningKey as JWK, "ES256");
+    signedJwt = await new SignJWT(jwtPayload).setProtectedHeader(jwtHeader).sign(signingKey);
   } else {
     throw new Error("No signing key provided!");
   }
   return signedJwt;
-};
-
-const signJwtViaKms = async (header: JWTHeaderParameters, payload: JWTPayload, keyId: string) => {
-  const kmsClient = new KMSClient({});
-  const jwtParts = {
-    header: Buffer.from(JSON.stringify(header)).toString("base64url"),
-    payload: Buffer.from(JSON.stringify(payload)).toString("base64url"),
-    signature: "",
-  };
-  const message = Buffer.from(jwtParts.header + "." + jwtParts.payload);
-  const signCommand = new SignCommand({
-    Message: message,
-    MessageType: "RAW",
-    KeyId: keyId,
-    SigningAlgorithm: "ECDSA_SHA_256",
-  });
-  const response = await kmsClient.send(signCommand);
-  if (!response.Signature) {
-    throw new Error(`Failed to sign JWT with KMS key ${keyId}`);
-  }
-  jwtParts.signature = Buffer.from(response.Signature).toString("base64url");
-  return jwtParts.header + "." + jwtParts.payload + "." + jwtParts.signature;
 };
 
 export const buildSignedJwt = async (params: BaseParams) => {
@@ -78,9 +67,9 @@ export const buildJarAuthorizationUrl = async (params: JarAuthorizationParams) =
     client_id: params.clientId,
     redirect_uri: params.redirectUrl,
     response_type: "code",
-    state: uuidv4(),
+    state: (params as Record<string, unknown>)["state"] || uuidv4(),
     govuk_signin_journey_id: uuidv4(),
-    sub: uuidv4(),
+    sub: ((params as Record<string, unknown>)["sub"] as string) || uuidv4(),
     aud: params.audience,
     ...params.customClaims,
   };

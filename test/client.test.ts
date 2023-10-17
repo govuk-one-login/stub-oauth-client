@@ -16,7 +16,7 @@ describe("buildJarAuthorizationUrl", () => {
           ],
         },
       ],
-      birthDate: [{ value: "1948-04-24" }],
+      birthDate: [{ value: "1948-04-23" }],
       address: [
         {
           buildingNumber: "",
@@ -47,8 +47,7 @@ describe("buildJarAuthorizationUrl", () => {
       audience: "https://review-hc.staging.account.gov.uk",
       authorizationEndpoint: "https://cri.core.build.stubs.account.gov.uk/oauth2/authorize",
       redirectUrl: "https://cri.core.build.stubs.account.gov.uk/callback",
-      publicEncryptionKey:
-        "ewogICJ1c2UiOiAiZW5jIiwKICAiYWxnIjogIkVTMjU2IiwKICAia3R5IjogIlJTQSIsCiAgImUiOiAiQVFBQiIsCiAgIm4iOiAib3A5bUZOUW1PdWc3TXdCRW5yaEpqWFAxSTRKMEhnb294cldvZG56S3ppRjJ2S0U4MHJETjZETmNXTG1KcEdlcWNvNHotbFpOQk9JRUc0MGh0X2JMLVc5bVVERi1JRk9jU0s0aHZKOXcyeHNsOHE3YnFxY3J2SFRNUXB3VU1HTzlQc0Jzb1cyWDZ2S0MzMFRWQ25GRktKUkgyYzBBYXUxTllzMGduRktJOUwxSjRacWJTQWlrNG81eW40dHdEQUV0N3VxWjRPMTdaSkhVdXVvNDdzeXNBYkhwczdHVHU5a1F1cFdzUU5QeC02UjhyT01QWVBrdnV6OWZta1lfWHc1R05JdGpiQklHVTdQV005bGZEVHVWRlRCNFVZNkJkVUZocE0tem90NGZsNFFRV09ISFdPSnlSMElCTjBWc01pTlBIeVRkcURtN3UwaEl0UGxPcGVsQjN3Igp9",
+      publicEncryptionKey: "",
       /** https://github.com/govuk-one-login/ipv-config/blob/main/stubs/di-ipv-core-stub/.env#L4
        * Convert the above to JWK
        * i.e "value in .env" | base64 -D
@@ -57,8 +56,8 @@ describe("buildJarAuthorizationUrl", () => {
       privateSigningKey: {
         kty: "",
         d: "",
-        use: "",
-        crv: "",
+        use: "sig",
+        crv: "P-256",
         kid: "",
         x: "",
         y: "",

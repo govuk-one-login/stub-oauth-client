@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from "uuid";
 import { CompactEncrypt, importJWK, importPKCS8, JWK, JWTHeaderParameters, JWTPayload, SignJWT } from "jose";
-import { BaseParams, JarAuthorizationParams, PrivateKeyType } from "./types";
-import { KMSClient } from "@aws-sdk/client-kms";
-import { JwtSigner } from "./jwt-signer";
+import { BaseParams, JarAuthorizationParams, PrivateJwtRequest } from "./types";
+import { KMSClient, SignCommand } from "@aws-sdk/client-kms";
+import { randomUUID } from "crypto";
 
 const publicKeyToJwk = async (publicKey: string) => {
   const decoded = Buffer.from(publicKey, "base64").toString();
@@ -35,11 +35,7 @@ const signJwt = async (jwtPayload: JWTPayload, params: BaseParams) => {
   const jwtHeader: JWTHeaderParameters = { alg: "ES256", typ: "JWT" };
   let signedJwt: string;
   if ("privateSigningKeyId" in params && params.privateSigningKeyId) {
-    (jwtHeader.typ = "JWT"), (jwtHeader.kid = params.privateSigningKeyId), (jwtHeader.kid = params.privateSigningKeyId);
-    const jwtSigner = new JwtSigner(new KMSClient({}), () => params.privateSigningKeyId);
-    const vcClaimSet = params.customClaims;
-    signedJwt = await jwtSigner.createSignedJwt(vcClaimSet as object);
-    console.dir(jwtPayload);
+    signedJwt = await signJwtViaKms(jwtHeader, jwtPayload, params.privateSigningKeyId);
   } else if ("privateSigningKey" in params && params.privateSigningKey && !isJWK(params.privateSigningKey)) {
     const signingKey = await importPKCS8(
       `-----BEGIN PRIVATE KEY-----\n${params.privateSigningKey}\n-----END PRIVATE KEY-----`,
@@ -55,13 +51,35 @@ const signJwt = async (jwtPayload: JWTPayload, params: BaseParams) => {
   return signedJwt;
 };
 
+const signJwtViaKms = async (header: JWTHeaderParameters, payload: JWTPayload, keyId: string) => {
+  const kmsClient = new KMSClient({});
+  const jwtParts = {
+    header: Buffer.from(JSON.stringify(header)).toString("base64url"),
+    payload: Buffer.from(JSON.stringify(payload)).toString("base64url"),
+    signature: "",
+  };
+  const message = Buffer.from(jwtParts.header + "." + jwtParts.payload);
+  const signCommand = new SignCommand({
+    Message: message,
+    MessageType: "RAW",
+    KeyId: keyId,
+    SigningAlgorithm: "ECDSA_SHA_256",
+  });
+  const response = await kmsClient.send(signCommand);
+  if (!response.Signature) {
+    throw new Error(`Failed to sign JWT with KMS key ${keyId}`);
+  }
+  jwtParts.signature = Buffer.from(response.Signature).toString("base64url");
+  return jwtParts.header + "." + jwtParts.payload + "." + jwtParts.signature;
+};
+
 export const buildSignedJwt = async (params: BaseParams) => {
   const jwtPayload = { ...buildBaseJwtPayload(params), ...params.customClaims };
   const signedJwt = await signJwt(jwtPayload, params);
   return signedJwt;
 };
 
-export const buildJarAuthorizationUrl = async (params: JarAuthorizationParams) => {
+export const buildJarAuthorizationRequest = async (params: JarAuthorizationParams) => {
   const jwtPayload: JWTPayload = {
     ...buildBaseJwtPayload(params),
     client_id: params.clientId,
@@ -81,8 +99,35 @@ export const buildJarAuthorizationUrl = async (params: JarAuthorizationParams) =
     .setProtectedHeader({ alg: "RSA-OAEP-256", enc: "A256GCM" })
     .encrypt(encryptionKeyJwk);
 
-  return `${params.authorizationEndpoint}?${buildQueryString({
+  return {
     client_id: params.clientId,
     request: encryptedSignedJwt,
-  })}`;
+  };
+};
+
+export const buildJarAuthorizationUrl = async (params: JarAuthorizationParams) => {
+  return `${params.authorizationEndpoint}?${buildQueryString(await buildJarAuthorizationRequest(params))}`;
+};
+
+export const buildTokenRequest = async (params: PrivateJwtRequest) => {
+  const jwtPayload = {
+    ...params.claims,
+    exp: Math.floor(Date.now() / 1000) + 2 * 60 * 60,
+    jti: randomUUID(),
+  };
+  const jwtHeader = {
+    kid: "ipv-core-stub-2-from-mkjwk.org",
+    alg: "ES256",
+  };
+  const key = await importJWK(params.sendersSigningKey, "ES256");
+  const signedJwt = await new SignJWT(jwtPayload).setProtectedHeader(jwtHeader).sign(key);
+
+  const data = new URLSearchParams([
+    ["client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"],
+    ["code", params.authorizationCode],
+    ["grant_type", "authorization_code"],
+    ["redirect_uri", params.redirect_uri],
+    ["client_assertion", signedJwt],
+  ]);
+  return data.toString();
 };

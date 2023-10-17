@@ -16,8 +16,9 @@ export type CustomClaims = {
   state?: string;
   exp?: number;
   iat?: number;
+  jti?: string;
 };
-export type PrivateKeyType = { privateSigningKey: string | JWK } | { privateSigningKeyId: string } 
+export type PrivateKeyType = { privateSigningKey: string | JWK } | { privateSigningKeyId: string };
 export type BaseParams = {
   issuer: string;
   customClaims?: CustomClaims;
@@ -31,4 +32,15 @@ export type JarAuthorizationParams = BaseParams & {
   authorizationEndpoint: string;
   redirectUrl: string;
   publicEncryptionKey: string;
+};
+
+export type PrivateJwtRequest = {
+  sendersSigningKey: JWK;
+  claims: {
+    iss: string;
+    sub: string;
+    aud: string | string[];
+  };
+  authorizationCode: string;
+  redirect_uri: string;
 };

@@ -1,12 +1,16 @@
 import { buildJarAuthorizationRequest } from "../client";
 import { CustomClaims } from "../types";
-import { EnvConfig } from "./env-config";
-import { vcClaimSet } from "./shared-claimset-config";
-
+import { EnvConfig } from "./config/env-config";
+import { vcClaimSet } from "./config/shared-claimset-config";
 /**
+ * Use this when making initial request to the CRI's private-api /session
+ * endpoint
  * Run with npx ts-node src/orange-team/create-jar-request-payload.ts
- * @param specifiedClaims
+ * @param specifiedClaims // can be used to provide an entirely new shared-claims
+ * vcClaimSet already contain a sample shared claims, use this like config
+ * change values in there as needed.
  * @returns
+ * {"client_id":"value-of-clientId", "request":"jwt.request.claims"}
  */
 export const getJarAuthorizationPayload = async (specifiedClaims?: CustomClaims) => {
   try {
@@ -15,8 +19,8 @@ export const getJarAuthorizationPayload = async (specifiedClaims?: CustomClaims)
       audience: EnvConfig.audience,
       authorizationEndpoint: EnvConfig.authorizationEndpoint,
       redirectUrl: EnvConfig.redirectUrl,
-      publicEncryptionKey: EnvConfig.publicEncryptionKey,
-      privateSigningKey: JSON.parse(EnvConfig.privateSigningKey),
+      publicEncryptionKey: EnvConfig.publicEncryptionKeyBase64,
+      privateSigningKey: JSON.parse(EnvConfig.privateSigningKeyJwk),
       issuer: EnvConfig.issuer,
       customClaims: specifiedClaims || vcClaimSet,
     });

@@ -1,13 +1,19 @@
 import { buildTokenRequest } from "../client";
 import { PrivateJwtRequest } from "../types";
-import { configJwtRequest } from "./private-key-config";
+import { configJwtRequest } from "./config/private-key-jwt-auth-config";
 
 /**
  * Run with npx ts-node src/orange-team/create-privatekeyJwt-request.ts
  * NOTE: Ensure your supply authorizationCode in "private-key-config"
- * Retrieves private JWT request parameters and returns them as a JSON string.
+ * Enables creating form-url-encoded query params for allowing private-jwt-key authentication
+ * to the public /token endpoint of the CRI.
  * @param request - The PrivateJwtRequest object.
- * @returns A JSON string representing the request parameters.
+ * @returns A form-url-encoded string params of the following:
+ * - client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+ * - client_assertion="signed.jwt.(iss,aud,exp,jti)"
+ * - redirect_uri="the callback url i.e. https://cri.core.build.stubs.account.gov.uk/callback"
+ * - grant_type="authorization_code" (This is an Authorization Code flow OAuth profile)
+ * - code="The authorization Code value generated on successful CRI interaction"
  */
 const getPrivateJwtRequestParams = async (request: PrivateJwtRequest): Promise<string> => {
   try {

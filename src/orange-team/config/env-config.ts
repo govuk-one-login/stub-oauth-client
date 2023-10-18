@@ -8,7 +8,7 @@ export const EnvConfig = {
   subject: process.env.SUBJECT || "",
   authorizationEndpoint: process.env.AUTHORIZATION_ENDPOINT || "",
   redirectUrl: process.env.REDIRECT_URL || "",
-  publicEncryptionKey: process.env.PUBLIC_ENCRYPTION_KEY || "",
-  privateSigningKey: process.env.PRIVATE_SIGNING_KEY || "",
+  publicEncryptionKeyBase64: process.env.PUBLIC_ENCRYPTION_KEY || "",
+  privateSigningKeyJwk: process.env.PRIVATE_SIGNING_KEY || "",
   issuer: process.env.ISSUER || "",
 };

@@ -1,27 +1,20 @@
 import { randomUUID } from "crypto";
 import { buildTokenRequest } from "../src/client";
-import * as dotenv from "dotenv";
-import { configJwtRequest } from "../src/orange-team/private-key-config";
+import { configJwtRequest } from "../src/orange-team/config/private-key-jwt-auth-config";
 
-dotenv.config();
 describe("create private key jwt", () => {
   it("should create privatekeyjwt", async () => {
-    const signingKey = configJwtRequest.sendersSigningKey;
     const jwtPayload = {
-      iss: configJwtRequest.claims.iss,
-      sub: configJwtRequest.claims.sub,
-      aud: configJwtRequest.claims.aud,
+      ...configJwtRequest.claims,
       exp: 4102444800,
       jti: randomUUID(),
     };
-    const authorizationCode = configJwtRequest.authorizationCode;
-    const redirect_uri = configJwtRequest.redirect_uri;
 
     const result = await buildTokenRequest({
       claims: { iss: jwtPayload.iss, sub: jwtPayload.sub, aud: jwtPayload.aud },
-      sendersSigningKey: { ...signingKey },
-      authorizationCode,
-      redirect_uri,
+      sendersSigningKey: { ...configJwtRequest.sendersSigningKey },
+      authorizationCode: configJwtRequest.authorizationCode,
+      redirect_uri: configJwtRequest.redirect_uri,
     });
 
     expect(result).toBe(

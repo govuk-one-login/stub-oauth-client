@@ -1,4 +1,4 @@
-import { CustomClaims } from "../types";
+import { CustomClaims } from "../../types";
 
 export const vcClaimSet: CustomClaims = {
   sub: "urn:fdc:gov.uk:2022:0df67954-5537-4c98-92d9-e95f0b2e6f44",

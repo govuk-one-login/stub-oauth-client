@@ -1,5 +1,7 @@
 import { buildJarAuthorizationUrl } from "../src/client";
 import { CustomClaims } from "../src/types";
+import { EnvConfig } from "../src/orange-team/env-config";
+
 describe("buildJarAuthorizationUrl", () => {
   const vcClaimSet: CustomClaims = {
     sub: "urn:fdc:gov.uk:2022:0df67954-5537-4c98-92d9-e95f0b2e6f44",
@@ -43,27 +45,18 @@ describe("buildJarAuthorizationUrl", () => {
   };
   it("should build signed and then encrypted authorization Jar", async () => {
     const cri = await buildJarAuthorizationUrl({
-      clientId: "ipv-core-stub-aws-build",
-      audience: "https://review-hc.staging.account.gov.uk",
-      authorizationEndpoint: "https://cri.core.build.stubs.account.gov.uk/oauth2/authorize",
-      redirectUrl: "https://cri.core.build.stubs.account.gov.uk/callback",
-      publicEncryptionKey: "",
+      clientId: EnvConfig.clientId,
+      audience: EnvConfig.audience,
+      authorizationEndpoint: EnvConfig.authorizationEndpoint,
+      redirectUrl: EnvConfig.redirectUrl,
+      publicEncryptionKey: EnvConfig.publicEncryptionKey,
       /** https://github.com/govuk-one-login/ipv-config/blob/main/stubs/di-ipv-core-stub/.env#L4
        * Convert the above to JWK
        * i.e "value in .env" | base64 -D
        * or find /stubs/core/cri/env/CORE_STUB_SIGNING_PRIVATE_KEY_JWK_BASE64
        */
-      privateSigningKey: {
-        kty: "",
-        d: "",
-        use: "sig",
-        crv: "P-256",
-        kid: "",
-        x: "",
-        y: "",
-        alg: "",
-      },
-      issuer: "https://cri.core.build.stubs.account.gov.uk",
+      privateSigningKey: JSON.parse(EnvConfig.privateSigningKey),
+      issuer: EnvConfig.issuer,
       customClaims: vcClaimSet,
     });
     expect(cri).toEqual(null);

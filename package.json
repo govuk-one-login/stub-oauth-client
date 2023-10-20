@@ -9,6 +9,9 @@
     "postinstall": "npm run build",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
+    "main": "node --enable-source-maps dist/main.js",
+    "jr": "npm run postinstall && node --enable-source-maps dist/cri-crypto-utils/create-jar-request-payload.js",
+    "pr": "npm run postinstall && node --enable-source-maps dist/cri-crypto-utils/create-private-key-jwt-request.js",
     "test": "jest"
   },
   "author": "",
@@ -29,10 +32,11 @@
     "typescript": "4.9.4"
   },
   "dependencies": {
+    "@aws-sdk/client-kms": "3.431.0",
     "@types/uuid": "9.0.0",
-    "@aws-sdk/client-kms": "3.357.0",
+    "dotenv": "16.0.3",
+    "ecdsa-sig-formatter": "1.0.11",
     "jose": "4.11.1",
-    "uuid": "9.0.0",
-    "dotenv": "16.0.3"
+    "uuidv4": "6.2.13"
   }
 }

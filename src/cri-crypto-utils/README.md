@@ -20,15 +20,14 @@ First copy the `.env.template` to a `.env` and fill it in as necessary
 Ensure node is installed and run npm i to install the package dependencies
 
 #### Config
-There are series of class in the `config` folder inside the orange-team directory. The classes should be treated as config are mean't to simply input into the script files, rather specifying them on the commandline.
+There are series of class in the `config` folder inside the cri-crypto-utils directory. The classes should be treated as config are mean't to simply input into the script files, rather specifying them on the commandline.
 - env-config.ts wraps the .env file
 - private-key-jwt-auth-config.ts (has minimal for claims used to make a token request)
 - shared-claimset-config contain a vcClaimSet which can be used in the JAR can change before running the test.
 
 ### Creating a JAR payload request
 This involves running:
-`npx ts-node src/orange-team/create-jar-request-payload.ts`
-or
+
 running `npm run jr`
 
 the output would be of the following format:
@@ -43,9 +42,9 @@ Run the following:
 Before running ensure that the authorization code generated from a 
 successful interaction with the CRI is supplied as the value of the `authorizationCode` key in private-key-jwt-auth-config 
 
-`npx ts-node src/orange-team/create-private-key-jwt-request.ts`
-or
-running `npm run pr`
+running `npm run pr --code=value`
+
+where `value` is the authorizationCode value
 
 This would generate the output needed to make a request to the `/token` public-api endpoint of the CRI
 

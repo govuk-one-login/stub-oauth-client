@@ -1,7 +1,9 @@
 import { EnvConfig } from "./env-config";
 import { randomUUID } from "crypto";
 import { PrivateJwtParams, PrivateKeyType } from "../../types";
-
+if (typeof process.env.npm_config_code === "undefined") {
+  throw new Error("Specify AuthorizationCode i.e. npm run pr --code='code value here'");
+}
 // Define the configuration as a TypeScript object
 export const configJwtRequest = (() =>
   ({
@@ -13,7 +15,7 @@ export const configJwtRequest = (() =>
       jti: randomUUID(),
     },
     // supply the generated authorization_code_value
-    authorizationCode: "19e46a1d-ee01-4245-b7c3-614d58f603bb",
+    authorizationCode: process.env.npm_config_code,
     redirectUrl: EnvConfig.redirectUrl,
     privateSigningKey: EnvConfig.privateSigningKey as PrivateKeyType,
     //privateSigningKeyId: EnvConfig.privateSigningKeyId

@@ -18,5 +18,5 @@ export const configJwtRequest = (() =>
     authorizationCode: process.env.npm_config_code,
     redirectUrl: EnvConfig.redirectUrl,
     privateSigningKey: EnvConfig.privateSigningKey as PrivateKeyType,
-    //privateSigningKeyId: EnvConfig.privateSigningKeyId
+    privateSigningKeyId: EnvConfig.privateSigningKeyId,
   } as PrivateJwtParams))();

@@ -23,6 +23,7 @@ export const getJarAuthorizationPayload = async (specifiedClaims?: JWTPayload) =
       redirectUrl: EnvConfig.redirectUrl,
       publicEncryptionKey: EnvConfig.publicEncryptionKeyBase64,
       privateSigningKey: EnvConfig.privateSigningKey as PrivateKeyType,
+      privateSigningKeyId: EnvConfig.privateSigningKeyId,
       issuer: EnvConfig.issuer,
       customClaims: specifiedClaims || vcClaimSet,
     });

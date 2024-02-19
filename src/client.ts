@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import sigFormatter from "ecdsa-sig-formatter";
 import { CompactEncrypt, importJWK, importPKCS8, JWK, JWTHeaderParameters, JWTPayload, SignJWT } from "jose";
 import { BaseParams, JarAuthorizationParams, PrivateJwtParams } from "./types";
 import { KMSClient, SignCommand } from "@aws-sdk/client-kms";
@@ -71,7 +72,7 @@ const signJwtViaKms = async (header: JWTHeaderParameters, payload: JWTPayload, k
   if (!response.Signature) {
     throw new Error(`Failed to sign JWT with KMS key ${keyId}`);
   }
-  jwtParts.signature = Buffer.from(response.Signature).toString("base64url");
+  jwtParts.signature = sigFormatter.derToJose(Buffer.from(response.Signature).toString("base64"), "ES256");
   return jwtParts.header + "." + jwtParts.payload + "." + jwtParts.signature;
 };
 

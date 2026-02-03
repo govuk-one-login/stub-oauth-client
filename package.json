@@ -32,7 +32,7 @@
     "typescript": "4.9.4"
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "3.431.0",
+    "@aws-sdk/client-kms": "3.981.0",
     "@types/uuid": "9.0.0",
     "dotenv": "16.0.3",
     "ecdsa-sig-formatter": "1.0.11",
